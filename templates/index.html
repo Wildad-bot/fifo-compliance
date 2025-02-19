@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+        <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FiFo &#124; Stock First&#8208In&#8208First&#8208Out Checker</title>
+    <script>
+        function clearForm() {
+            document.getElementById("uploadForm").reset();
+            document.getElementById("message").innerHTML = "";
+            document.getElementById("results").innerHTML = "";
+        }
+    </script>
+    <style>
+        .app-heading{
+            color: white;
+            font-weight:700;
+            font-size:15px;
+            background-color:rgb(130,0,0);
+            width:1160px;
+            margin: 10px 50px 10px 50px;
+            display: fixed;
+        }
+        .display{
+            background-color:rgb(220,220,220);
+            height:auto;
+            width:1160px;
+            margin: 5px 50px 50px 50px;
+            position: absolute;
+           
+ 
+        }
+		.footer{
+            display:flex;
+            font-size:10px;
+            align-items: baseline;
+			margin-bottom:2px;
+		}
+		.exp-position{
+		cursor: auto;
+		position: relative;
+		
+		}
+		
+
+		
+
+		.exp-position .tooltip{
+		position: absolute;
+		color:white;
+		font-size:15px;
+		border-width: 1px;
+		border-color: green;
+		margin: -8px 2px, 2px,2px;
+		background-color: grey;
+		padding: 4px;
+		transition: opacity 0.1s;
+		opacity:0 ;
+		}
+
+		.tooltip:hover{
+		visibility:visible;
+		cursor:pointer;
+		opacity:1;
+		}
+
+    </style>
+</head>
+<body>
+    <div class="app-heading">
+    <h1>FIFO Compliance Checker</h1>
+    </div>   
+ <div class="display">
+		<p><strong>Note:</strong> Please ensure your file follows this format:</p>
+	<table border="1">
+    <tr class="data-heads">
+        <th>SKU</th>
+        <th>Batch No</th>
+		<div class="exp-date">
+		 <th class="exp-position">Expiry Date <div class="tooltip">ddmmyyyy</div></th>
+		</div>
+        <th>Quantity</th>
+        <th>Storage Location</th>
+    </tr>
+	</table>
+<p>Files that do not follow this format may not be processed correctly.</p>
+    <form id="uploadForm" action="/check_compliance" method="post" enctype="multipart/form-data">
+        <label for="stock_file">Upload Warehouse Stock File (CSV or Excel):</label>
+        <input type="file" name="stock_file" required><br><br>
+
+        <label for="outbound_file">Upload Outbound Stock File (CSV or Excel):</label>
+        <input type="file" name="outbound_file" required><br><br>
+
+        <button type="submit">Check Compliance</button>
+        <button type="button" onclick="clearForm()">Clear</button>
+    </form>
+
+    <br>
+    <div id="message"></div>
+    <div id="results"></div>
+
+    <script>
+        document.getElementById("uploadForm").onsubmit = async function(event) {
+            event.preventDefault();
+            let formData = new FormData(this);
+
+            let response = await fetch("/check_compliance", {
+                method: "POST",
+                body: formData
+            });
+
+            let result = await response.json();
+            if (result.error) {
+                document.getElementById("message").innerHTML = `<p style="color:red;">Error: ${result.error}</p>`;
+            } else {
+                document.getElementById("message").innerHTML = `<p style="color:green;">${result.message}</p>`;
+                
+                let tableHTML = `<table border="1"><tr>
+                    <th>SKU</th>
+                    <th>Batch No</th>
+                    <th>Expiry Date</th>
+                    <th>Quantity</th>
+                    <th>Storage Location</th>
+                    <th>Compliance Status</th>
+                </tr>`;
+
+                result.compliance_report.forEach(row => {
+                    let color = row["Compliance Status"] === "Compliant" ? "green" : "red";
+                    tableHTML += `<tr>
+                        <td>${row["SKU"]}</td>
+                        <td>${row["Batch No"]}</td>
+                        <td>${row["Expiry Date"]}</td>
+                        <td>${row["Quantity"]}</td>
+                        <td>${row["Storage Location"]}</td>
+                        <td style="color:${color};">${row["Compliance Status"]}</td>
+                    </tr>`;
+                });
+
+                tableHTML += "</table>";
+                document.getElementById("results").innerHTML = tableHTML;
+
+                if (result.download_report_url) {
+                    document.getElementById("results").innerHTML += `<br><a href="${result.download_report_url}" download>Download Compliance Report</a>`;
+                }
+            }
+        };
+    </script>
+	<div class="footer">Wildad Visualization Lab. &#124; Malakisi, Bungoma-Kenya &#124; +254712169319</div>
+ </div>
+</body>
+</html>
